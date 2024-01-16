@@ -1,6 +1,6 @@
 import http from "http";
 import express from "express";
-import { WebSocketServer } from "ws";
+import { Server } from "socket.io";
 
 
 const app = express();
@@ -12,33 +12,38 @@ app.get("/", (req, res) => res.render("home"));
 
 const handleListen = () => console.log("ws://localhost:3000");
 
-const server = http.createServer(app);
+const httpServer = http.createServer(app);
 
-const wss = new WebSocketServer({ server });
+const wsServer = new Server(httpServer);
 
-const sockets = []
+wsServer.on("connection", (socket) => {
+    console.log(socket)
+})
 
-wss.on("connection", (socket) => {
-    sockets.push(socket);
-    socket["nickname"] = "Anonymous";
-    console.log("connecting to browser");
-    socket.on("close", () => { console.log("disconnected from browser"); });
-    socket.on("message", (msg) => {
-        const message = JSON.parse(msg.toString());
-        console.log(message);
-        switch (message.type) {
-            case "new_message":
-                sockets.forEach(aSocket => {
-                    aSocket.send(`${socket.nickname}: ${message.payload}`);
-                });
-            case "nickname":
-                console.log(message.payload)
-                socket["nickname"] = message.payload;
-        };
 
-    });
+// const sockets = []
 
-});
+// wss.on("connection", (socket) => {
+//     sockets.push(socket);
+//     socket["nickname"] = "Anonymous";
+//     console.log("connecting to browser");
+//     socket.on("close", () => { console.log("disconnected from browser"); });
+//     socket.on("message", (msg) => {
+//         const message = JSON.parse(msg.toString());
+//         console.log(message);
+//         switch (message.type) {
+//             case "new_message":
+//                 sockets.forEach(aSocket => {
+//                     aSocket.send(`${socket.nickname}: ${message.payload}`);
+//                 });
+//             case "nickname":
+//                 console.log(message.payload)
+//                 socket["nickname"] = message.payload;
+//         };
 
-server.listen(3000, handleListen);
+//     });
+
+// });
+
+httpServer.listen(3000, handleListen);
 // app.listen(3000,handleListen) ;
