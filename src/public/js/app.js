@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 const socket = io();
 const welcome = document.getElementById("welcome");
 const form = welcome.querySelector("form");
@@ -70,3 +71,6 @@ socket.on("room_change", (rooms) => {
 
 socket.on("new_message", (msg) => addMessage(msg));
 form.addEventListener("submit", handleRoomSubmit);
+=======
+const socket = io();
+>>>>>>> efd94d09b74a6e2cc10c310baf11e02f97a90699
