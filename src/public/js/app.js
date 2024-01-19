@@ -1,30 +1,72 @@
-var socket = new WebSocket(`ws://${window.location.host}`);
+const socket = io();
+const welcome = document.getElementById("welcome");
+const form = welcome.querySelector("form");
+const room = document.getElementById("room");
 
+room.hidden = true;
 
+let roomName;
 
-const messageList = document.querySelector('ul');
-const messageForm = document.querySelector('form');
+function addMessage(message) {
+  const ul = room.querySelector("ul");
+  const li = document.createElement("li");
+  li.innerText = message;
+  ul.appendChild(li);
+}
 
-socket.addEventListener('open',()=>{
-    console.log('connecting to server');
+function showRoom() {
+  welcome.hidden = true;
+  room.hidden = false;
+  const h3 = room.querySelector("h3");
+  const msg = room.querySelector("#msg");
+  h3.innerText = `room ${roomName}`;
+  msg.addEventListener("submit", handleMessageSubmit);
+}
+
+function handleRoomSubmit(event) {
+  event.preventDefault();
+  const input = form.querySelector("#room_input");
+  const input_name = form.querySelector("#name_input");
+  socket.emit("enter_room", input.value, input_name.value, showRoom);
+  roomName = input.value;
+  input.value = "";
+}
+
+function handleMessageSubmit(event) {
+  event.preventDefault();
+  const input = room.querySelector("#msg input");
+  const message = input.value;
+  socket.emit("new_message", message, roomName, () => {
+    addMessage(`you:${message}`);
+  });
+  input.value = "";
+}
+
+socket.on("welcome", (name, newCount) => {
+  const h3 = room.querySelector("h3");
+  h3.innerText = `Room ${roomName} (${newCount})`;
+  addMessage(`${name} joined`);
 });
 
-socket.addEventListener('message',(message)=>{
-    // console.log('received message:',message.data);
-    const li = document.createElement('li');
-    li.innerText = message.data;
-    messageList.append(li);
+socket.on("bye", (name, newCount) => {
+  const h3 = room.querySelector("h3");
+  h3.innerText = `Room ${roomName} (${newCount})`;
+  addMessage(`${name} left`);
 });
 
-socket.addEventListener('close',()=>{console.log('disconnecting from server');});
+socket.on("room_change", (rooms) => {
+  const roomList = welcome.querySelector("ul");
+  roomList.innerHTML = "";
+  if (rooms.length === 0) {
+    return;
+  }
 
-function handlesubmit(event){
-    event.preventDefault();
-    const input = messageForm.querySelector('input');
-    console.log(input.value);
-    socket.send(input.value);
-    input.value = '';
-};
+  rooms.forEach((room) => {
+    const li = document.createElement("li");
+    li.innerText = room;
+    roomList.append(li);
+  });
+});
 
-messageForm.addEventListener('submit',handlesubmit);
-
+socket.on("new_message", (msg) => addMessage(msg));
+form.addEventListener("submit", handleRoomSubmit);

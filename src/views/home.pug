@@ -8,15 +8,22 @@ html(lang="en")
 
     body
         header
-            h1 Hi! 
+            h1 Noom
         main
-            h2 welcome to noom!
-            ul
-            form#name
-                input(type="text", praceholder="name", required)
-                button Save 
-            form#
-                input(type="text", praceholder="msg", required)
-                button Sand 
-            
-        script(src = "/public/js/app.js")
+            div#welcome
+                form
+                    input(placeholder="room name", required, type="text")#room_input
+                    input(placeholder="neme", required, type="text")#name_input
+                    button Enter Room
+                    h4 Open Rooms:
+                    ul
+            div#room
+                h3 
+                ul
+                
+                form#msg
+                    input(placeholder="message", required, type="text")
+                    button Send
+                    h3 
+        script(src="/socket.io/socket.io.js") 
+        script(src="/public/js/app.js") 
