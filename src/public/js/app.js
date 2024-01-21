@@ -1,72 +1,50 @@
 const socket = io();
-const welcome = document.getElementById("welcome");
-const form = welcome.querySelector("form");
-const room = document.getElementById("room");
+const view = document.getElementById("myface");
+const muteBtn = document.getElementById("mute");
+const videoBtn = document.getElementById("video");
 
-room.hidden = true;
+let myStream;
 
-let roomName;
-
-function addMessage(message) {
-  const ul = room.querySelector("ul");
-  const li = document.createElement("li");
-  li.innerText = message;
-  ul.appendChild(li);
+let muted = false;
+let videoOff = false;
+async function getMedia() {
+  try {
+    myStream = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: true,
+    });
+    console.log(myStream);
+    myface.srcObject = myStream;
+  } catch (e) {}
 }
 
-function showRoom() {
-  welcome.hidden = true;
-  room.hidden = false;
-  const h3 = room.querySelector("h3");
-  const msg = room.querySelector("#msg");
-  h3.innerText = `room ${roomName}`;
-  msg.addEventListener("submit", handleMessageSubmit);
-}
+function handleMuteClick(event) {
+  //   myStream
+  //     .getAudioTracks()
+  //     .forEach((track) => (track.enabled = !track.enabled));
 
-function handleRoomSubmit(event) {
-  event.preventDefault();
-  const input = form.querySelector("#room_input");
-  const input_name = form.querySelector("#name_input");
-  socket.emit("enter_room", input.value, input_name.value, showRoom);
-  roomName = input.value;
-  input.value = "";
-}
-
-function handleMessageSubmit(event) {
-  event.preventDefault();
-  const input = room.querySelector("#msg input");
-  const message = input.value;
-  socket.emit("new_message", message, roomName, () => {
-    addMessage(`you:${message}`);
-  });
-  input.value = "";
-}
-
-socket.on("welcome", (name, newCount) => {
-  const h3 = room.querySelector("h3");
-  h3.innerText = `Room ${roomName} (${newCount})`;
-  addMessage(`${name} joined`);
-});
-
-socket.on("bye", (name, newCount) => {
-  const h3 = room.querySelector("h3");
-  h3.innerText = `Room ${roomName} (${newCount})`;
-  addMessage(`${name} left`);
-});
-
-socket.on("room_change", (rooms) => {
-  const roomList = welcome.querySelector("ul");
-  roomList.innerHTML = "";
-  if (rooms.length === 0) {
-    return;
+  if (!muted) {
+    muteBtn.innerText = "Muted";
+  } else {
+    muteBtn.innerText = "Mute";
   }
+  muted = !muted;
+}
 
-  rooms.forEach((room) => {
-    const li = document.createElement("li");
-    li.innerText = room;
-    roomList.append(li);
-  });
-});
+function handleVideoClick(event) {
+  myStream
+    .getVideoTracks()
+    .forEach((track) => (track.enabled = !track.enabled));
 
-socket.on("new_message", (msg) => addMessage(msg));
-form.addEventListener("submit", handleRoomSubmit);
+  if (!videoOff) {
+    videoBtn.innerText = "Video On";
+  } else {
+    videoBtn.innerText = "Video Off";
+  }
+  videoOff = !videoOff;
+}
+
+muteBtn.addEventListener("click", handleMuteClick);
+videoBtn.addEventListener("click", handleVideoClick);
+
+getMedia();
