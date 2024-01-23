@@ -1,6 +1,16 @@
 const socket = io();
+let scale = 1;
+let roomName;
 
-const scale = 1;
+const scaleSelect = document.getElementById("scale");
+
+scaleSelect.addEventListener("change", handleScaleChange);
+
+
+function handleScaleChange() {
+    scale = scaleSelect.value;
+    console.log(scale);
+}
 window.ondevicemotion = function (motion) {
     //x(red) z(blue) y(green) 
     var gyroV = {
@@ -26,5 +36,5 @@ window.ondevicemotion = function (motion) {
             z: 0
         }
     }
-    console.log(gyroV);
+    // console.log(gyroV);
 };
