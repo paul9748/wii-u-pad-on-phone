@@ -4,15 +4,15 @@ html(lang="en")
         meta(charset="UTF-8")
         meta(http-equiv="X-UA-Compatible", content="IE=edge")
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
-        title Noom
+        title U Pad
         link(rel="stylesheet", href="https://unpkg.com/mvp.css")
     body
         header
             h1 U Pad
         main
-            form
-                a#cli CLI
-                br
-                a#server Server 
+            div
+                form 
+                    label#status
+                    button#selectdisplay selectdisplay
         script(src="/socket.io/socket.io.js") 
-        script(src="/public/js/app.js") 
+        script(src="/public/js/server.js") 
