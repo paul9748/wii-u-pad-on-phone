@@ -2,6 +2,7 @@ const socket = io();
 let scale = 1;
 let exTime = +new Date();
 let exGamepadState;
+let gyroData;
 
 const scaleSelect = document.getElementById("scale");
 const fullBtn = document.getElementById("Fullscreen");
@@ -17,12 +18,12 @@ function handleScaleChange() {
 }
 window.ondevicemotion = function (motion) {
   //x(red) z(blue) y(green)
-  var gyroV = {
+  let gyroV = {
     x: scale * motion.rotationRate.alpha,
     z: scale * motion.rotationRate.beta,
     y: -scale * motion.rotationRate.gamma,
   };
-  var gyroH = {
+  let gyroH = {
     z: scale * motion.rotationRate.alpha,
     x: -scale * motion.rotationRate.beta,
     y: -scale * motion.rotationRate.gamma,
@@ -31,7 +32,7 @@ window.ondevicemotion = function (motion) {
   document.getElementById("x").textContent = "x:" + gyroV.x;
   document.getElementById("y").textContent = "y:" + gyroV.y;
   document.getElementById("z").textContent = "z:" + gyroV.z;
-  var data = {
+  gyroData = {
     ts: new Date().getTime(),
     gyro: screen == "v" ? gyroV : gyroH,
     acceleration: {
@@ -40,7 +41,6 @@ window.ondevicemotion = function (motion) {
       z: 0,
     },
   };
-  // console.log(gyroV);
 };
 
 // Gamepad part
@@ -109,18 +109,18 @@ fullBtn.addEventListener("click", function (event) {
   } else if (screen.msRequestFullscreen) {
     screen.msRequestFullscreen();
   }
-  var height = screen.offsetHeight;
+  let height = screen.offsetHeight;
   const width = (height / 9) * 16;
   video.style.width = width + "px";
 });
 
 // 최초 업데이트 시작
-updateGamepadState();
+// updateGamepadState();
 
 //Soket join part
 
 async function initCall() {
-  makeConnection();
+  await makeConnection();
 }
 
 async function handleWelcomeSubmit(event) {
@@ -133,13 +133,25 @@ handleWelcomeSubmit();
 //Socket part
 
 socket.on("welcome", async () => {
-  const offer = await myPeerConnection.createOffer();
+  myDataChannel = myPeerConnection.createDataChannel("chat");
+  myDataChannel.addEventListener("message", (event) => console.log(event.data));
+  console.log("made data channel");
+  const offer = await myPeerConnection.createOffer({
+    offerToReceiveAudio: true,
+    offerToReceiveVideo: true,
+  });
   myPeerConnection.setLocalDescription(offer);
   console.log("sent the offer");
   socket.emit("offer", offer, roomName);
 });
 
 socket.on("offer", async (offer) => {
+  myPeerConnection.addEventListener("datachannel", (event) => {
+    myDataChannel = event.channel;
+    myDataChannel.addEventListener("message", (event) =>
+      console.log(event.data)
+    );
+  });
   console.log("received the offer");
   myPeerConnection.setRemoteDescription(offer);
   const answer = await myPeerConnection.createAnswer();
@@ -157,7 +169,6 @@ socket.on("ice", (ice) => {
   console.log("received candidate");
   myPeerConnection.addIceCandidate(ice);
 });
-
 // RTC part
 
 function makeConnection() {
@@ -176,7 +187,6 @@ function makeConnection() {
   });
   myPeerConnection.addEventListener("icecandidate", handleIce);
   myPeerConnection.addEventListener("addstream", handleAddStream);
-  console.log("make connection");
 }
 
 function handleIce(data) {
@@ -187,4 +197,8 @@ function handleIce(data) {
 function handleAddStream(data) {
   console.log("received the stream");
   video.srcObject = data.stream;
+}
+
+function datatransfer(data) {
+  socket.emit("data", data);
 }
