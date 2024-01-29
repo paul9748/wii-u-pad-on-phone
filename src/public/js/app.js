@@ -1,14 +1,10 @@
 // const socket = io();
 
-
-
-
 const cliLink = document.getElementById("cli");
 const serverLink = document.getElementById("server");
 
-cliLink.href = "http://" + window.location.host + "/cli";
-serverLink.href = "http://" + window.location.host + "/server";
-
+cliLink.href = "https://" + window.location.host + "/cli";
+serverLink.href = "https://" + window.location.host + "/server";
 
 // const myFace = document.getElementById("myFace");
 // const muteBtn = document.getElementById("mute");

@@ -19,15 +19,30 @@ const roomName = "upad";
 scaleSelect.addEventListener("change", () => (scale = scaleSelect.value));
 
 // Gyro part
-window.ondevicemotion = async function (motion) {
+window.ondevicemotion = function (motion) {
   startGyro = true;
-  const gyroV = { x: scale * motion.rotationRate.alpha, z: scale * motion.rotationRate.beta, y: -scale * motion.rotationRate.gamma };
-  const gyroH = { z: scale * motion.rotationRate.alpha, x: -scale * motion.rotationRate.beta, y: -scale * motion.rotationRate.gamma };
+  const gyroV = {
+    x: scale * motion.rotationRate.alpha,
+    z: scale * motion.rotationRate.beta,
+    y: -scale * motion.rotationRate.gamma,
+  };
+  const gyroH = {
+    z: scale * motion.rotationRate.alpha,
+    x: -scale * motion.rotationRate.beta,
+    y: -scale * motion.rotationRate.gamma,
+  };
 
-  ["x", "y", "z"].forEach((axis) => (document.getElementById(axis).textContent = `${axis}:${gyroV[axis]}`));
+  ["x", "y", "z"].forEach(
+    (axis) =>
+      (document.getElementById(axis).textContent = `${axis}:${gyroV[axis]}`)
+  );
 
-  gyroData = { ts: new Date().getTime(), gyro: screenPositionSelect.value == "v" ? gyroV : gyroH, acceleration: { x: 0, y: 0, z: 0 } };
-  await updateGamepadState()
+  gyroData = {
+    ts: new Date().getTime(),
+    gyro: screenPositionSelect.value == "v" ? gyroV : gyroH,
+    acceleration: { x: 0, y: 0, z: 0 },
+  };
+  // await updateGamepadState();
   gamepadDataSand();
 };
 
@@ -54,8 +69,8 @@ function updateGamepadState() {
     return element !== null;
   });
   const selectPad = gamepads.find((pad) => pad.id == gamepadSelect.value);
-  const outputBtnValue = [];
-  const outputAxeValue = [];
+  const outputBtnValue = Array(16).fill(0);
+  const outputAxeValue = Array(4).fill(0);
   const exGamepadState = JSON.parse(JSON.stringify(gamepadState));
 
   gamepads.forEach((gamepad) => {
@@ -72,7 +87,6 @@ function updateGamepadState() {
     }
   });
 
-
   const now = +new Date();
 
   if (JSON.stringify(gamepadState) !== JSON.stringify(exGamepadState)) {
@@ -82,8 +96,9 @@ function updateGamepadState() {
   }
 
   exTime = now;
-  if (Object.keys(gamepadState).length !== 0 && !startGyro) setTimeout(updateGamepadState, pollingInterval);
-
+  //&& !startGyro
+  if (Object.keys(gamepadState).length !== 0)
+    setTimeout(updateGamepadState, pollingInterval);
 }
 
 function gamepadDataSand() {
@@ -91,17 +106,25 @@ function gamepadDataSand() {
   if (gamepadData == {}) {
     data = gyroData;
   } else {
-    data = Object.assign(gyroData, { btn: gamepadData.buttons, axe: gamepadData.axes });
+    data = Object.assign(gyroData, {
+      btn: gamepadData.buttons,
+      axe: gamepadData.axes,
+    });
     console.log(data.btn);
-  };
+  }
   socket.emit("data", data);
+  document.getElementById("paddata").textContent = JSON.stringify(data);
 }
-
-
+//pad data => a b x y l r l2 r2 sl st l3 r3
+//pad axal => lh lv rh rv
 fullBtn.addEventListener("click", (event) => {
   event.preventDefault();
   console.log("fullscreen");
-  const requestFullScreen = screen.requestFullscreen || screen.mozRequestFullScreen || screen.webkitRequestFullscreen || screen.msRequestFullscreen;
+  const requestFullScreen =
+    screen.requestFullscreen ||
+    screen.mozRequestFullScreen ||
+    screen.webkitRequestFullscreen ||
+    screen.msRequestFullscreen;
   requestFullScreen.call(screen);
   const height = screen.offsetHeight;
   const width = (height / 9) * 16;
@@ -127,7 +150,10 @@ async function handleWelcome() {
   myDataChannel = myPeerConnection.createDataChannel("chat");
   myDataChannel.addEventListener("message", (event) => console.log(event.data));
   console.log("made data channel");
-  const offer = await myPeerConnection.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+  const offer = await myPeerConnection.createOffer({
+    offerToReceiveAudio: true,
+    offerToReceiveVideo: true,
+  });
   myPeerConnection.setLocalDescription(offer);
   console.log("sent the offer");
   socket.emit("offer", offer, roomName);
@@ -164,11 +190,18 @@ function handleIce(data) {
 
 // RTC part
 
-
 function makeConnection() {
   myPeerConnection = new RTCPeerConnection({
     iceServers: [
-      { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302", "stun:stun3.l.google.com:19302", "stun:stun4.l.google.com:19302"] },
+      {
+        urls: [
+          "stun:stun.l.google.com:19302",
+          "stun:stun1.l.google.com:19302",
+          "stun:stun2.l.google.com:19302",
+          "stun:stun3.l.google.com:19302",
+          "stun:stun4.l.google.com:19302",
+        ],
+      },
     ],
   });
   myPeerConnection.addEventListener("icecandidate", handleIce);
