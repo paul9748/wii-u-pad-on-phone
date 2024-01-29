@@ -1,11 +1,12 @@
 const socket = io();
 let scale = 1;
 let exTime = +new Date();
-let gyroData;
-let gamepadData;
+let gyroData = {};
+let gamepadData = {};
 let gamepadState = {};
 let myPeerConnection;
 let screenPosition;
+let startGyro = false;
 
 const scaleSelect = document.getElementById("scale");
 const fullBtn = document.getElementById("Fullscreen");
@@ -18,13 +19,16 @@ const roomName = "upad";
 scaleSelect.addEventListener("change", () => (scale = scaleSelect.value));
 
 // Gyro part
-window.ondevicemotion = function (motion) {
+window.ondevicemotion = async function (motion) {
+  startGyro = true;
   const gyroV = { x: scale * motion.rotationRate.alpha, z: scale * motion.rotationRate.beta, y: -scale * motion.rotationRate.gamma };
   const gyroH = { z: scale * motion.rotationRate.alpha, x: -scale * motion.rotationRate.beta, y: -scale * motion.rotationRate.gamma };
 
   ["x", "y", "z"].forEach((axis) => (document.getElementById(axis).textContent = `${axis}:${gyroV[axis]}`));
 
   gyroData = { ts: new Date().getTime(), gyro: screenPositionSelect.value == "v" ? gyroV : gyroH, acceleration: { x: 0, y: 0, z: 0 } };
+  await updateGamepadState()
+  gamepadDataSand();
 };
 
 // Gamepad part
@@ -46,7 +50,9 @@ function handleGamepadDisconnected(event) {
 const pollingInterval = 0;
 
 function updateGamepadState() {
-  const gamepads = navigator.getGamepads();
+  const gamepads = navigator.getGamepads().filter((element) => {
+    return element !== null;
+  });
   const selectPad = gamepads.find((pad) => pad.id == gamepadSelect.value);
   const outputBtnValue = [];
   const outputAxeValue = [];
@@ -70,15 +76,28 @@ function updateGamepadState() {
   const now = +new Date();
 
   if (JSON.stringify(gamepadState) !== JSON.stringify(exGamepadState)) {
-    console.log(outputBtnValue, outputAxeValue, now - exTime);
-    gamepadData = { ts: now, buttons: outputBtnValue, axes: outputAxeValue };
-    socket.emit("data", { btn: outputBtnValue, axe: outputAxeValue });
+    // console.log(outputBtnValue, outputAxeValue, now - exTime);
+    gamepadData = { buttons: outputBtnValue, axes: outputAxeValue };
+    gamepadDataSand();
   }
 
   exTime = now;
-  if (Object.keys(gamepadState).length !== 0) setTimeout(updateGamepadState, pollingInterval);
+  if (Object.keys(gamepadState).length !== 0 && !startGyro) setTimeout(updateGamepadState, pollingInterval);
 
 }
+
+function gamepadDataSand() {
+  let data;
+  if (gamepadData == {}) {
+    data = gyroData;
+  } else {
+    data = Object.assign(gyroData, { btn: gamepadData.buttons, axe: gamepadData.axes });
+    console.log(data.btn);
+  };
+  socket.emit("data", data);
+}
+
+
 fullBtn.addEventListener("click", (event) => {
   event.preventDefault();
   console.log("fullscreen");

@@ -39,6 +39,7 @@ wsServer.on("connection", (socket) => {
     socket.to(roomName).emit("ice", ice);
   });
   socket.on("data", (data) => {
+    console.log("received data:");
     console.log(data);
   });
 });
@@ -139,6 +140,7 @@ server.on("listening", () => {
 });
 
 server.on("message", (data, rinfo) => {
+  console.log("got a message");
   if (!(
     data[0] === char("D") &&
     data[1] === char("S") &&
