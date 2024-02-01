@@ -3,6 +3,8 @@ let scale = 1;
 let exTime = +new Date();
 let gyroData = {};
 let gamepadData = {};
+gamepadData.buttons = Array(16).fill(0);
+gamepadData.axes = Array(4).fill(0);
 let gamepadState = {};
 let myPeerConnection;
 let screenPosition;
@@ -33,8 +35,8 @@ window.ondevicemotion = function (motion) {
   };
 
   ["x", "y", "z"].forEach(
-    (axis) =>
-      (document.getElementById(axis).textContent = `${axis}:${gyroV[axis]}`)
+    (axes) =>
+      (document.getElementById(axes).textContent = `${axes}:${gyroV[axes]}`)
   );
 
   gyroData = {
@@ -42,7 +44,7 @@ window.ondevicemotion = function (motion) {
     gyro: screenPositionSelect.value == "v" ? gyroV : gyroH,
     acceleration: { x: 0, y: 0, z: 0 },
   };
-  // await updateGamepadState();
+  updateGamepadState();
   gamepadDataSand();
 };
 
@@ -77,12 +79,12 @@ function updateGamepadState() {
     if (gamepad && gamepad.index == selectPad.index) {
       gamepad.buttons.forEach((button, index) => {
         gamepadState[gamepad.index][`button${index + 1}`] = button.value;
-        outputBtnValue.push(button.value);
+        outputBtnValue[index] = button.value;
       });
 
-      gamepad.axes.forEach((axis, index) => {
-        gamepadState[gamepad.index][`axis${index + 1}`] = axis;
-        outputAxeValue.push(axis);
+      gamepad.axes.forEach((axes, index) => {
+        gamepadState[gamepad.index][`axes${index + 1}`] = axes;
+        outputAxeValue[index] = axes;
       });
     }
   });
@@ -97,7 +99,7 @@ function updateGamepadState() {
 
   exTime = now;
   //&& !startGyro
-  if (Object.keys(gamepadState).length !== 0)
+  if (Object.keys(gamepadState).length !== 0 && !startGyro)
     setTimeout(updateGamepadState, pollingInterval);
 }
 
@@ -108,7 +110,7 @@ function gamepadDataSand() {
   } else {
     data = Object.assign(gyroData, {
       btn: gamepadData.buttons,
-      axe: gamepadData.axes,
+      axes: gamepadData.axes,
     });
     console.log(data.btn);
   }

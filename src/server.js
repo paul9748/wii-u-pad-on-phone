@@ -86,9 +86,8 @@ const initializeServer = async () => {
       socket.to(roomName).emit("ice", ice);
     });
     socket.on("data", (data) => {
-      console.log("received data:");
-      console.log(data);
-      Report(data.ts * 1000, data.acceleration, data.gyro, data.btn, data.axe);
+      console.log("report");
+      Report((data.ts * 1000).toString(16), data.acceleration, data.gyro, data.btn, data.axes);
     });
   });
 
@@ -147,7 +146,7 @@ const initializeServer = async () => {
   function SendPacket(client, data) {
     let buffer = Buffer.alloc(16);
     let index = BeginPacket(buffer, data.length);
-    // buffer.fill(data,index);
+    //buffer.fill(data,index);
     buffer = Buffer.concat([buffer, data]);
     FinishPacket(buffer);
     server.send(
@@ -182,7 +181,6 @@ const initializeServer = async () => {
   });
 
   server.on("message", (data, rinfo) => {
-    console.log("got a message");
     if (
       !(
         data[0] === char("D") &&
@@ -269,34 +267,37 @@ const initializeServer = async () => {
 
   //pad data => a b x y l1 r1 l2 r2 sl st l3 r3 u d l r
   //pad axal => lh lv rh rv
-  function Report(motionTimestamp, accelerometer, gyro, btn, axe) {
+  function Report(motionTimestamp, accelerometer, gyro, btn, axes) {
     let client = connectedClient;
     if (client === null || Date.now() - lastRequestAt > clientTimeoutLimit)
       return;
     const padString = btn.map((element) => element.toString());
     let paddata1 = parseInt(
-      padString[0] +
-        padString[1] +
-        padString[2] +
-        padString[3] +
-        padString[4] +
-        padString[5] +
-        padString[6] +
-        padString[7],
+      padString[14] +//left
+      padString[13] +//down
+      padString[15] +//right
+      padString[12] +//up
+      padString[9] +//option
+      padString[11] +//r3
+      padString[10] +//l3
+      padString[8],//share
       2
     );
     let paddata2 = parseInt(
-      padString[14] +
-        padString[13] +
-        padString[12] +
-        padString[15] +
-        padString[9] +
-        padString[10] +
-        padString[11] +
-        padString[8],
+      padString[2] +//X
+      padString[1] +//B
+      padString[0] +//A
+      padString[3] +//Y
+      padString[5] +//r
+      padString[4] + //l
+      padString[7] +//r2
+      padString[6],//l2
       2
     );
 
+    let axesdata = [127 + (127 * axes[0]), 127 + (127 * axes[1]), 127 + (127 * axes[2]), 127 + (127 * axes[3])];
+    axesdata = axesdata.map((element) => Math.round(element));
+    console.log(axesdata);
     let outBuffer = Buffer.alloc(100);
     let outIndex = BeginPacket(outBuffer);
     outBuffer.writeUInt32LE(MessageType.DSUS_PadDataRsp, outIndex, true);
@@ -319,15 +320,19 @@ const initializeServer = async () => {
     outBuffer.writeUInt32LE(packetCounter++, outIndex, true);
     outIndex += 4;
 
-    outBuffer.writeUInt8(paddata1, ++outIndex); // left, down, right, up, options, R3, L3, share
-    outBuffer.writeUInt8(paddata2, ++outIndex); // square, cross, circle, triangle, r1, l1, r2, l2
+    outBuffer.writeUInt8(paddata1, outIndex); // left, down, right, up, options, R3, L3, share
+
+    outBuffer.writeUInt8(paddata2, ++outIndex);
+
+
+    // square, cross, circle, triangle, r1, l1, r2, l2
     outBuffer[++outIndex] = 0x00; // PS
     outBuffer[++outIndex] = 0x00; // Touch
 
-    outBuffer[++outIndex] = 0xff; // position left x
-    outBuffer[++outIndex] = 0x00; // position left y
-    outBuffer[++outIndex] = 0x00; // position right x
-    outBuffer[++outIndex] = 0x00; // position right y
+    outBuffer.writeUInt8(axesdata[0], ++outIndex);// position left x
+    outBuffer.writeUInt8(axesdata[1], ++outIndex); // position left y
+    outBuffer.writeUInt8(axesdata[2], ++outIndex); // position right y
+    outBuffer.writeUInt8(axesdata[3], ++outIndex); // position right x
 
     outBuffer[++outIndex] = 0x00; // dpad left
     outBuffer[++outIndex] = 0x00; // dpad down
@@ -405,6 +410,7 @@ const initializeServer = async () => {
           );
         }
       }
+
     );
   }
 
