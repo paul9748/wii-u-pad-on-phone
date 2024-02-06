@@ -22,9 +22,11 @@ const displayMediaOptions = {
 
 // Display Media Functions
 async function getMedia() {
+
   try {
     myStream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
     myFace.srcObject = myStream;
+    socket.emit("update_display");
   } catch (error) {
     console.error(error);
   }

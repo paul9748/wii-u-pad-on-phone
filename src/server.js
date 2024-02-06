@@ -5,6 +5,7 @@ import SocketIO from "socket.io";
 import express from "express";
 import dgram from "dgram";
 import crc from "crc";
+import touch from "../build/Release/touch.node";
 
 const app = express();
 
@@ -89,6 +90,17 @@ const initializeServer = async () => {
       console.log("report");
       Report((data.ts * 1000).toString(16), data.acceleration, data.gyro, data.btn, data.axes);
     });
+    socket.on("update_display", () => {
+      try {
+        const title = touch.getWindowTitle();
+        console.log(title);
+        touch.resizeWindow(title);
+      } catch (e) {
+        console.log(e);
+      }
+
+
+    })
   });
 
   const handleHttpsListen = () =>

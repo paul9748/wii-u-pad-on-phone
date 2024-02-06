@@ -9,6 +9,7 @@ let gamepadState = {};
 let myPeerConnection;
 let screenPosition;
 let startGyro = false;
+let touchData;
 
 const scaleSelect = document.getElementById("scale");
 const fullBtn = document.getElementById("Fullscreen");
@@ -112,14 +113,13 @@ function gamepadDataSand() {
       btn: gamepadData.buttons,
       axes: gamepadData.axes,
     });
-    console.log(data.btn);
   }
   socket.emit("data", data);
   document.getElementById("paddata").textContent = JSON.stringify(data);
 }
 //pad data => a b x y l r l2 r2 sl st l3 r3
 //pad axal => lh lv rh rv
-fullBtn.addEventListener("click", (event) => {
+fullBtn.addEventListener("click", async (event) => {
   event.preventDefault();
   console.log("fullscreen");
   const requestFullScreen =
@@ -127,11 +127,43 @@ fullBtn.addEventListener("click", (event) => {
     screen.mozRequestFullScreen ||
     screen.webkitRequestFullscreen ||
     screen.msRequestFullscreen;
-  requestFullScreen.call(screen);
-  const height = screen.offsetHeight;
-  const width = (height / 9) * 16;
-  video.style.width = `${width}px`;
+  await requestFullScreen.call(screen);
+  let settings = video.srcObject.getVideoTracks()[0].getSettings();
+  if (screen.offsetHeight / settings.height > screen.offsetWidth / settings.width) {
+    console.log("offsetHeight win");
+    video.style.height = "auto";
+    video.style.width = "100%";
+    console.log(video.style.width, video.style.height);
+  } else {
+    console.log("offsetWidth win");
+    video.style.height = "100%";
+    video.style.width = "auto";
+    console.log(video.style.width, video.style.height);
+  }
+
+
+
 });
+
+//touchpart
+
+video.addEventListener("touchstart", (event) => {
+  let videoLocation = video.getBoundingClientRect()
+  console.log(`touchstart:${event.touches[0].clientX - videoLocation.x}, ${event.touches[0].clientY - videoLocation.y}`);
+});
+
+video.addEventListener("touchmove", (event) => {
+  let videoLocation = video.getBoundingClientRect()
+  console.log(`touchmove:${event.touches[0].clientX - videoLocation.x}, ${event.touches[0].clientY - videoLocation.y}`);
+
+})
+
+video.addEventListener("touchend", (event) => {
+  console.log(event.touches[0]);
+
+})
+
+
 
 // Soket join part
 async function initCall() {
@@ -164,7 +196,7 @@ async function handleWelcome() {
 socket.on("offer", handleOffer);
 
 async function handleOffer(offer) {
-  myPeerConnection.addEventListener("datachannel", handleDataChannel);
+  // myPeerConnection.addEventListener("datachannel", handleDataChannel);
   console.log("received the offer");
   myPeerConnection.setRemoteDescription(offer);
   const answer = await myPeerConnection.createAnswer();
@@ -210,14 +242,15 @@ function makeConnection() {
   myPeerConnection.addEventListener("addstream", handleAddStream);
 }
 
-function handleDataChannel(event) {
-  myDataChannel = event.channel;
-  myDataChannel.addEventListener("message", (event) => console.log(event.data));
-}
+// function handleDataChannel(event) {
+//   myDataChannel = event.channel;
+//   myDataChannel.addEventListener("message", (event) => console.log(event.data));
+// }
 
 function handleAddStream(data) {
   console.log("received the stream");
   video.srcObject = data.stream;
+
 }
 
 function datatransfer(data) {
