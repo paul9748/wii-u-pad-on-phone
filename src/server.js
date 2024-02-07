@@ -19,6 +19,7 @@ app.get("/*", (_, res) => res.redirect("/"));
 
 const keyPath = __dirname + "/key.pem";
 const certPath = __dirname + "/fullchain.pem";
+let titleBarHeight = 0;
 
 const download = (url, destination) => {
   return new Promise((resolve, reject) => {
@@ -90,16 +91,25 @@ const initializeServer = async () => {
       console.log("report");
       Report((data.ts * 1000).toString(16), data.acceleration, data.gyro, data.btn, data.axes);
     });
+    socket.on("touch_event", (event, x, y, windowName) => {
+
+      touch.mouseAction(event, x, y, windowName);
+
+    })
     socket.on("update_display", () => {
       try {
         const title = touch.getWindowTitle();
         console.log(title);
-        touch.resizeWindow(title);
+        titleBarHeight = touch.resizeWindow(title);
+        socket.emit("titleBarHeightUpdate", titleBarHeight);
       } catch (e) {
         console.log(e);
       }
 
 
+    })
+    socket.on("getTitleBarHeight", (func) => {
+      func(titleBarHeight)
     })
   });
 
@@ -123,10 +133,10 @@ const initializeServer = async () => {
   const serverID = 0 + Math.floor(Math.random() * 4294967295);
   console.log(`serverID: ${serverID}`);
 
-  var connectedClient = null;
-  var lastRequestAt = 0;
-  var phoneIsConnected = false;
-  var packetCounter = 0;
+  let connectedClient = null;
+  let lastRequestAt = 0;
+  let phoneIsConnected = false;
+  let packetCounter = 0;
   const clientTimeoutLimit = 5000;
 
   function BeginPacket(data, dlen) {

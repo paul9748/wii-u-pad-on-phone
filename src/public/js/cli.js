@@ -217,6 +217,10 @@ socket.on("ice", (ice) => {
   myPeerConnection.addIceCandidate(ice);
 });
 
+socket.on("titleBarHeightUpdate", (titleBarHeight) => {
+  console.log("titleBarHeightUpdate", titleBarHeight);
+});
+
 function handleIce(data) {
   console.log("received candidate");
   socket.emit("ice", data.candidate, roomName);

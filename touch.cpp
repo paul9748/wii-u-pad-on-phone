@@ -56,6 +56,7 @@ void resizeWindow(const FunctionCallbackInfo<Value> &args)
         int newWidth = 854;
         int newHeight = 480 + titleBarHeight;
         SetWindowPos(hwnd, NULL, 0, 0, newWidth, newHeight, SWP_NOMOVE | SWP_NOZORDER);
+        args.GetReturnValue().Set(titleBarHeight);
     }
 }
 
