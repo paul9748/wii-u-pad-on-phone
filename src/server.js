@@ -1,4 +1,3 @@
-import http from "http";
 import https from "https";
 import fs from "fs";
 import SocketIO from "socket.io";
@@ -19,7 +18,7 @@ app.get("/*", (_, res) => res.redirect("/"));
 
 const keyPath = __dirname + "/key.pem";
 const certPath = __dirname + "/fullchain.pem";
-let titleBarHeight = 0;
+let title = "";
 
 const download = (url, destination) => {
   return new Promise((resolve, reject) => {
@@ -91,26 +90,26 @@ const initializeServer = async () => {
       console.log("report");
       Report((data.ts * 1000).toString(16), data.acceleration, data.gyro, data.btn, data.axes);
     });
-    socket.on("touch_event", (event, x, y, windowName) => {
-
-      touch.mouseAction(event, x, y, windowName);
+    socket.on("test1", (data) => {
+      const displayIndex = touch.addVirtualDisplay();
+      console.log(`Added a new virtual display, index: ${displayIndex}`);
+    })
+    socket.on("test2", (data) => {
+      const removedDisplayIndex = touch.removeLastVirtualDisplay();
+      console.log(`Removed the last virtual display, index: ${removedDisplayIndex}`);
 
     })
-    socket.on("update_display", () => {
-      try {
-        const title = touch.getWindowTitle();
-        console.log(title);
-        titleBarHeight = touch.resizeWindow(title);
-        socket.emit("titleBarHeightUpdate", titleBarHeight);
-      } catch (e) {
-        console.log(e);
-      }
 
 
+
+    socket.on("getTitlelist", (func) => {
+      // func(touch.getAllWindowTitles());
+
     })
-    socket.on("getTitleBarHeight", (func) => {
-      func(titleBarHeight)
+    socket.on("processSelect", (selectedTitle) => {
+      title = selectedTitle;
     })
+
   });
 
   const handleHttpsListen = () =>
@@ -438,5 +437,9 @@ const initializeServer = async () => {
 
   server.bind(26760);
 };
+
+process.on('exit', () => {
+  nativeAddon.stopProgram();
+});
 
 initializeServer();

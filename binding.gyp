@@ -3,7 +3,7 @@
         {
             "target_name": "touch",
             "sources": ["touch.cpp"],
-            "include_dirs": ["<!(node -e \"require('nan')\")"],
+            "include_dirs": ["<!(node -e \"require('nan')\")", "./"],
         }
     ]
 }

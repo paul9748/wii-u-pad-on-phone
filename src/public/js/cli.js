@@ -10,15 +10,17 @@ let myPeerConnection;
 let screenPosition;
 let startGyro = false;
 let touchData;
-
+const titleCut = document.getElementById("titleCut");
 const scaleSelect = document.getElementById("scale");
 const fullBtn = document.getElementById("Fullscreen");
 const screen = document.getElementById("screen");
 const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const processSelect = document.getElementById("process");
+const ctx = canvas.getContext("2d");
 const gamepadSelect = document.getElementById("gamepad");
 const screenPositionSelect = document.getElementById("position");
 const roomName = "upad";
-
 scaleSelect.addEventListener("change", () => (scale = scaleSelect.value));
 
 // Gyro part
@@ -34,11 +36,6 @@ window.ondevicemotion = function (motion) {
     x: -scale * motion.rotationRate.beta,
     y: -scale * motion.rotationRate.gamma,
   };
-
-  ["x", "y", "z"].forEach(
-    (axes) =>
-      (document.getElementById(axes).textContent = `${axes}:${gyroV[axes]}`)
-  );
 
   gyroData = {
     ts: new Date().getTime(),
@@ -115,12 +112,15 @@ function gamepadDataSand() {
     });
   }
   socket.emit("data", data);
-  document.getElementById("paddata").textContent = JSON.stringify(data);
 }
 //pad data => a b x y l r l2 r2 sl st l3 r3
 //pad axal => lh lv rh rv
 fullBtn.addEventListener("click", async (event) => {
   event.preventDefault();
+  if (processSelect.value == "none") {
+    alert("Please select a process");
+    return
+  }
   console.log("fullscreen");
   const requestFullScreen =
     screen.requestFullscreen ||
@@ -131,14 +131,14 @@ fullBtn.addEventListener("click", async (event) => {
   let settings = video.srcObject.getVideoTracks()[0].getSettings();
   if (screen.offsetHeight / settings.height > screen.offsetWidth / settings.width) {
     console.log("offsetHeight win");
-    video.style.height = "auto";
-    video.style.width = "100%";
-    console.log(video.style.width, video.style.height);
+    canvas.style.height = "auto";
+    canvas.style.width = "100%";
+    console.log(canvas.style.width, canvas.style.height);
   } else {
     console.log("offsetWidth win");
-    video.style.height = "100%";
-    video.style.width = "auto";
-    console.log(video.style.width, video.style.height);
+    canvas.style.height = "100%";
+    canvas.style.width = "auto";
+    console.log(canvas.style.width, canvas.style.height);
   }
 
 
@@ -147,19 +147,32 @@ fullBtn.addEventListener("click", async (event) => {
 
 //touchpart
 
-video.addEventListener("touchstart", (event) => {
-  let videoLocation = video.getBoundingClientRect()
-  console.log(`touchstart:${event.touches[0].clientX - videoLocation.x}, ${event.touches[0].clientY - videoLocation.y}`);
+
+processSelect.addEventListener("change", (event) => {
+  socket.emit("processSelect", process.value);
+})
+
+canvas.addEventListener("touchstart", (event) => {
+  event.preventDefault();
+  let canvasLocation = canvas.getBoundingClientRect()
+  console.log(`touchstart:${event.touches[0].clientX - canvasLocation.x}, ${event.touches[0].clientY - canvasLocation.y}`);
+  socket.emit("touch_event", "mousedown", event.touches[0].clientX - canvasLocation.x, event.touches[0].clientY - canvasLocation.y);
 });
 
-video.addEventListener("touchmove", (event) => {
-  let videoLocation = video.getBoundingClientRect()
-  console.log(`touchmove:${event.touches[0].clientX - videoLocation.x}, ${event.touches[0].clientY - videoLocation.y}`);
+canvas.addEventListener("touchmove", (event) => {
+  event.preventDefault();
+  let canvasLocation = canvas.getBoundingClientRect()
+  socket.emit("touch_event", "move", event.touches[0].clientX - canvasLocation.x, event.touches[0].clientY - canvasLocation.y);
+  console.log(`touchmove:${event.touches[0].clientX - canvasLocation.x}, ${event.touches[0].clientY - canvasLocation.y}`);
 
 })
 
-video.addEventListener("touchend", (event) => {
-  console.log(event.touches[0]);
+canvas.addEventListener("touchend", (event) => {
+  event.preventDefault();
+  let canvasLocation = canvas.getBoundingClientRect()
+  console.log(event.changedTouches[0].clientX - canvasLocation.x, event.changedTouches[0].clientY - canvasLocation.y);
+  socket.emit("touch_event", "mouseup", event.changedTouches[0].clientX - canvasLocation.x, event.changedTouches[0].clientY - canvasLocation.y);
+
 
 })
 
@@ -217,9 +230,6 @@ socket.on("ice", (ice) => {
   myPeerConnection.addIceCandidate(ice);
 });
 
-socket.on("titleBarHeightUpdate", (titleBarHeight) => {
-  console.log("titleBarHeightUpdate", titleBarHeight);
-});
 
 function handleIce(data) {
   console.log("received candidate");
@@ -253,7 +263,19 @@ function makeConnection() {
 
 function handleAddStream(data) {
   console.log("received the stream");
+  process.options.length = 0;
   video.srcObject = data.stream;
+  drawFrame()
+
+}
+async function drawFrame() {
+  let settings = video.srcObject.getVideoTracks()[0].getSettings();
+  canvas.width = settings.width;
+  canvas.height = settings.height - titleCut.value;
+
+  ctx.drawImage(video, 0, -titleCut.value, canvas.width, canvas.height);
+  requestAnimationFrame(drawFrame)
+
 
 }
 

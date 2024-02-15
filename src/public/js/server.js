@@ -6,6 +6,7 @@ const selectBtn = document.getElementById("selectdisplay");
 let myStream;
 let myPeerConnection;
 
+
 const displayMediaOptions = {
   video: {
     displaySurface: "browser",
@@ -19,15 +20,13 @@ const displayMediaOptions = {
   surfaceSwitching: "include",
   monitorTypeSurfaces: "include",
 };
-
 // Display Media Functions
 async function getMedia() {
 
   try {
+
     myStream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
     video.srcObject = myStream;
-
-    socket.emit("update_display");
   } catch (error) {
     console.error(error);
   }
@@ -116,14 +115,14 @@ function makeConnection() {
 
   myStream.getTracks().forEach((track) => myPeerConnection.addTrack(track, myStream));
 
-  const encodingParameters = {
-    resolutionScale: 1.0,  // 해상도 비율 설정
-    framerateScale: 1.0,  // 프레임 속도 비율 설정
-    bitrateScale: 1.0,    // 비트레이트 비율 설정
-  };
+  // const encodingParameters = {
+  //   resolutionScale: 1.0,  // 해상도 비율 설정
+  //   framerateScale: 1.0,  // 프레임 속도 비율 설정
+  //   bitrateScale: 1.0,    // 비트레이트 비율 설정
+  // };
 
-  const videoSender = myPeerConnection.getSenders().find((sender) => sender.track.kind === "video");
-  videoSender.setParameters({ encodings: [encodingParameters] });
+  // const videoSender = myPeerConnection.getSenders().find((sender) => sender.track.kind === "video");
+  // videoSender.setParameters({ encodings: [encodingParameters] });
 
 }
 

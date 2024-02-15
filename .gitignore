@@ -23,3 +23,4 @@ build/config.gypi
 build/touch.vcxproj
 build/touch.vcxproj.filters
 node.h
+build/Release/obj/touch/touch.tlog/touch.write.1u.tlog

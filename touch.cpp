@@ -1,113 +1,119 @@
 #include <node.h>
-#include <windows.h>
-#include <string>
+#include <thread>
+#include <chrono>
+#include <vector>
+#include <nan.h>
+#include "parsec-vdd.h"
 
 using namespace v8;
+using namespace std::chrono_literals;
+using namespace parsec_vdd;
 
-HWND FindWindowByTitle(const char *title)
-{
-    int unicode_length = MultiByteToWideChar(CP_UTF8, 0, title, -1, NULL, 0);
-    wchar_t *unicode_title = new wchar_t[unicode_length];
-    MultiByteToWideChar(CP_UTF8, 0, title, -1, unicode_title, unicode_length);
+// Global variables
+bool running = true;
+std::vector<int> displays;
+HANDLE vdd = NULL;
 
-    HWND window_handle = FindWindowW(NULL, unicode_title);
-
-    delete[] unicode_title;
-
-    return window_handle;
-}
-
-std::string GetActiveWindowTitle()
-{
-    HWND hwnd = GetForegroundWindow();
-    if (hwnd == NULL)
-    {
-        return "";
-    }
-
-    int length = GetWindowTextLengthW(hwnd);
-    wchar_t *buffer = new wchar_t[length + 1];
-    GetWindowTextW(hwnd, buffer, length + 1);
-    std::wstring utf16Title(buffer);
-    delete[] buffer;
-
-    int utf8Length = WideCharToMultiByte(CP_UTF8, 0, utf16Title.c_str(), -1, NULL, 0, NULL, NULL);
-    char *utf8Buffer = new char[utf8Length];
-    WideCharToMultiByte(CP_UTF8, 0, utf16Title.c_str(), -1, utf8Buffer, utf8Length, NULL, NULL);
-    std::string utf8Title(utf8Buffer);
-    delete[] utf8Buffer;
-
-    return utf8Title;
-}
-
-void resizeWindow(const FunctionCallbackInfo<Value> &args)
-{
-    Isolate *isolate = args.GetIsolate();
-    HWND hwnd = FindWindowByTitle(*String::Utf8Value(isolate, args[0]->ToString(isolate->GetCurrentContext()).FromMaybe(v8::Local<v8::String>())));
-    if (hwnd == NULL)
-    {
-        isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Window not found:").ToLocalChecked()));
-        return;
-    }
-    {
-        RECT rect;
-        GetWindowRect(hwnd, &rect);
-        int titleBarHeight = GetSystemMetrics(SM_CYCAPTION);
-        int newWidth = 854;
-        int newHeight = 480 + titleBarHeight;
-        SetWindowPos(hwnd, NULL, 0, 0, newWidth, newHeight, SWP_NOMOVE | SWP_NOZORDER);
-        args.GetReturnValue().Set(titleBarHeight);
-    }
-}
-
-void getWindowTitle(const FunctionCallbackInfo<Value> &args)
-{
-    Isolate *isolate = args.GetIsolate();
-    std::string windowTitle = GetActiveWindowTitle();
-    args.GetReturnValue().Set(String::NewFromUtf8(isolate, windowTitle.c_str()).ToLocalChecked());
-    return;
-}
-
-void mouseAction(const FunctionCallbackInfo<Value> &args)
+// Function to add a virtual display
+void AddVirtualDisplay(const FunctionCallbackInfo<Value> &args)
 {
     Isolate *isolate = args.GetIsolate();
 
-    v8::String::Utf8Value param1(isolate, args[0]->ToString(isolate->GetCurrentContext()).FromMaybe(v8::Local<v8::String>()));
-    std::string action = std::string(*param1);
-    int x = args[1]->Int32Value(isolate->GetCurrentContext()).FromJust();
-    int y = args[2]->Int32Value(isolate->GetCurrentContext()).FromJust();
-
-    HWND hwnd = FindWindowByTitle(*String::Utf8Value(isolate, args[3]->ToString(isolate->GetCurrentContext()).FromMaybe(v8::Local<v8::String>())));
-    if (hwnd == NULL)
+    // Check if the maximum number of displays has been reached
+    if (displays.size() >= VDD_MAX_DISPLAYS)
     {
-        isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Window not found").ToLocalChecked()));
+        isolate->ThrowException(Exception::TypeError(
+            String::NewFromUtf8Literal(isolate, "Limit exceeded, could not add more virtual displays.")));
         return;
     }
 
-    if (action == "mousedown")
-    {
-        SendMessage(hwnd, WM_LBUTTONDOWN, MK_LBUTTON, MAKELPARAM(x, y));
-    }
-    else if (action == "mouseup")
-    {
-        SendMessage(hwnd, WM_LBUTTONUP, 0, MAKELPARAM(x, y));
-    }
-    else if (action == "move")
-    {
-        SetCursorPos(x, y);
-    }
-    else
-    {
-        isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Invalid action").ToLocalChecked()));
-        return;
-    }
+    // Add a new virtual display
+    int index = VddAddDisplay(vdd);
+    displays.push_back(index);
+
+    args.GetReturnValue().Set(index);
 }
 
-void Init(Local<Object> exports)
+// Function to remove the last added virtual display
+void RemoveLastVirtualDisplay(const FunctionCallbackInfo<Value> &args)
 {
-    NODE_SET_METHOD(exports, "mouseAction", mouseAction);
-    NODE_SET_METHOD(exports, "resizeWindow", resizeWindow);
-    NODE_SET_METHOD(exports, "getWindowTitle", getWindowTitle);
+    Isolate *isolate = args.GetIsolate();
+
+    // Check if there are any displays to remove
+    if (displays.empty())
+    {
+        isolate->ThrowException(Exception::TypeError(
+            String::NewFromUtf8Literal(isolate, "No added virtual displays.")));
+        return;
+    }
+
+    // Remove the last virtual display
+    int index = displays.back();
+    VddRemoveDisplay(vdd, index);
+    displays.pop_back();
+
+    args.GetReturnValue().Set(index);
 }
 
-NODE_MODULE(touch, Init)
+// Function to stop the program and clean up resources
+void StopProgram(const FunctionCallbackInfo<Value> &args)
+{
+    // Stop the main loop
+    running = false;
+
+    // Remove all virtual displays before exiting
+    for (int index : displays)
+    {
+        VddRemoveDisplay(vdd, index);
+    }
+
+    // Close the device handle
+    if (vdd != NULL && vdd != INVALID_HANDLE_VALUE)
+    {
+        CloseDeviceHandle(vdd);
+        vdd = NULL;
+    }
+}
+
+// Function for the side thread to update vdd
+void UpdateVdd()
+{
+    while (running)
+    {
+        VddUpdate(vdd);
+        std::this_thread::sleep_for(100ms);
+    }
+}
+
+// Function to initialize the native addon
+void InitializeAddon(Local<Object> exports)
+{
+    // Check driver status
+
+    DeviceStatus status = QueryDeviceStatus(&VDD_CLASS_GUID, VDD_HARDWARE_ID);
+    if (status != DEVICE_OK)
+    {
+        Nan::ThrowError("Parsec VDD device is not OK.");
+        return;
+    }
+
+    // Obtain device handle
+    vdd = OpenDeviceHandle(&VDD_ADAPTER_GUID);
+    if (vdd == NULL || vdd == INVALID_HANDLE_VALUE)
+    {
+        Nan::ThrowError("Failed to obtain the device handle.");
+        return;
+    }
+
+    // Create a new thread for updating vdd
+    std::thread updater(UpdateVdd);
+    updater.detach();
+
+    // Define the functions to be exported
+    NODE_SET_METHOD(exports, "addVirtualDisplay", AddVirtualDisplay);
+    NODE_SET_METHOD(exports, "removeLastVirtualDisplay", RemoveLastVirtualDisplay);
+    NODE_SET_METHOD(exports, "stopProgram", StopProgram);
+}
+
+// Register the addon initialization function
+NODE_MODULE(NativeAddon, InitializeAddon)
