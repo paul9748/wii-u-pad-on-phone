@@ -4,7 +4,7 @@ import SocketIO from "socket.io";
 import express from "express";
 import dgram from "dgram";
 import crc from "crc";
-import touch from "../build/Release/touch.node";
+import parsec_vdd_node from "../build/Release/parsecVdd2node.node";
 
 const app = express();
 
@@ -19,6 +19,7 @@ app.get("/*", (_, res) => res.redirect("/"));
 const keyPath = __dirname + "/key.pem";
 const certPath = __dirname + "/fullchain.pem";
 let title = "";
+let vdIndex;
 
 const download = (url, destination) => {
   return new Promise((resolve, reject) => {
@@ -91,12 +92,22 @@ const initializeServer = async () => {
       Report((data.ts * 1000).toString(16), data.acceleration, data.gyro, data.btn, data.axes);
     });
     socket.on("test1", (data) => {
-      const displayIndex = touch.addVirtualDisplay();
-      console.log(`Added a new virtual display, index: ${displayIndex}`);
+
+      try {
+        vdIndex = parsec_vdd_node.addVirtualDisplay();
+        console.log(`Added a new virtual display, index: ${vdIndex}`);
+      } catch (error) {
+        console.error(`Error: ${error.message}`);
+      }
+
     })
     socket.on("test2", (data) => {
-      const removedDisplayIndex = touch.removeLastVirtualDisplay();
-      console.log(`Removed the last virtual display, index: ${removedDisplayIndex}`);
+      try {
+        parsec_vdd_node.removeVirtualDisplay(vdIndex);
+        console.log(`Removed virtual display at index: ${vdIndex}`);
+      } catch (error) {
+        console.error(`Error: ${error.message}`);
+      }
 
     })
 
