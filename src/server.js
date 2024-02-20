@@ -4,7 +4,29 @@ import SocketIO from "socket.io";
 import express from "express";
 import dgram from "dgram";
 import crc from "crc";
-import parsec_vdd_node from "../build/Release/parsecVdd2node.node";
+import path from "path";
+const { spawn } = require("child_process");
+(function () {
+  var childProcess = require("child_process");
+  var oldSpawn = childProcess.spawn;
+  function mySpawn() {
+    console.log("spawn called");
+    console.log(arguments);
+    var result = oldSpawn.apply(this, arguments);
+    return result;
+  }
+  childProcess.spawn = mySpawn;
+})();
+const parsec_vdd = path
+  .resolve("D:/dev/zoom/zoom-clone/parsec-vdd/x64/Debug/parsec-vdd-manager.exe")
+  .replaceAll("\\", "/");
+
+const vd = spawn(parsec_vdd);
+vd.stdin.write("a");
+
+process.on("exit", () => {
+  vd.stdin.write("q");
+});
 
 const app = express();
 
@@ -89,38 +111,23 @@ const initializeServer = async () => {
     });
     socket.on("data", (data) => {
       console.log("report");
-      Report((data.ts * 1000).toString(16), data.acceleration, data.gyro, data.btn, data.axes);
+      Report(
+        (data.ts * 1000).toString(16),
+        data.acceleration,
+        data.gyro,
+        data.btn,
+        data.axes
+      );
     });
-    socket.on("test1", (data) => {
-
-      try {
-        vdIndex = parsec_vdd_node.addVirtualDisplay();
-        console.log(`Added a new virtual display, index: ${vdIndex}`);
-      } catch (error) {
-        console.error(`Error: ${error.message}`);
-      }
-
-    })
-    socket.on("test2", (data) => {
-      try {
-        parsec_vdd_node.removeVirtualDisplay(vdIndex);
-        console.log(`Removed virtual display at index: ${vdIndex}`);
-      } catch (error) {
-        console.error(`Error: ${error.message}`);
-      }
-
-    })
-
-
+    socket.on("test1", (data) => {});
+    socket.on("test2", (data) => {});
 
     socket.on("getTitlelist", (func) => {
       // func(touch.getAllWindowTitles());
-
-    })
+    });
     socket.on("processSelect", (selectedTitle) => {
       title = selectedTitle;
-    })
-
+    });
   });
 
   const handleHttpsListen = () =>
@@ -305,29 +312,34 @@ const initializeServer = async () => {
       return;
     const padString = btn.map((element) => element.toString());
     let paddata1 = parseInt(
-      padString[14] +//left
-      padString[13] +//down
-      padString[15] +//right
-      padString[12] +//up
-      padString[9] +//option
-      padString[11] +//r3
-      padString[10] +//l3
-      padString[8],//share
+      padString[14] + //left
+        padString[13] + //down
+        padString[15] + //right
+        padString[12] + //up
+        padString[9] + //option
+        padString[11] + //r3
+        padString[10] + //l3
+        padString[8], //share
       2
     );
     let paddata2 = parseInt(
-      padString[2] +//X
-      padString[1] +//B
-      padString[0] +//A
-      padString[3] +//Y
-      padString[5] +//r
-      padString[4] + //l
-      padString[7] +//r2
-      padString[6],//l2
+      padString[2] + //X
+        padString[1] + //B
+        padString[0] + //A
+        padString[3] + //Y
+        padString[5] + //r
+        padString[4] + //l
+        padString[7] + //r2
+        padString[6], //l2
       2
     );
 
-    let axesdata = [127 + (127 * axes[0]), 127 + (127 * axes[1]), 127 + (127 * axes[2]), 127 + (127 * axes[3])];
+    let axesdata = [
+      127 + 127 * axes[0],
+      127 + 127 * axes[1],
+      127 + 127 * axes[2],
+      127 + 127 * axes[3],
+    ];
     axesdata = axesdata.map((element) => Math.round(element));
     console.log(axesdata);
     let outBuffer = Buffer.alloc(100);
@@ -356,12 +368,11 @@ const initializeServer = async () => {
 
     outBuffer.writeUInt8(paddata2, ++outIndex);
 
-
     // square, cross, circle, triangle, r1, l1, r2, l2
     outBuffer[++outIndex] = 0x00; // PS
     outBuffer[++outIndex] = 0x00; // Touch
 
-    outBuffer.writeUInt8(axesdata[0], ++outIndex);// position left x
+    outBuffer.writeUInt8(axesdata[0], ++outIndex); // position left x
     outBuffer.writeUInt8(axesdata[1], ++outIndex); // position left y
     outBuffer.writeUInt8(axesdata[2], ++outIndex); // position right y
     outBuffer.writeUInt8(axesdata[3], ++outIndex); // position right x
@@ -442,14 +453,13 @@ const initializeServer = async () => {
           );
         }
       }
-
     );
   }
 
   server.bind(26760);
 };
 
-process.on('exit', () => {
+process.on("exit", () => {
   nativeAddon.stopProgram();
 });
 
