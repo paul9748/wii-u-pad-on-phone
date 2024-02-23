@@ -5,27 +5,23 @@ import express from "express";
 import dgram from "dgram";
 import crc from "crc";
 import path from "path";
-const { spawn } = require("child_process");
-(function () {
-  var childProcess = require("child_process");
-  var oldSpawn = childProcess.spawn;
-  function mySpawn() {
-    console.log("spawn called");
-    console.log(arguments);
-    var result = oldSpawn.apply(this, arguments);
-    return result;
-  }
-  childProcess.spawn = mySpawn;
-})();
+import { spawn } from "child_process";
 const parsec_vdd = path
-  .resolve("D:/dev/zoom/zoom-clone/parsec-vdd/x64/Debug/parsec-vdd-manager.exe")
+  .resolve("./parsec-vdd/x64/Debug/parsec-vdd-manager.exe")
   .replaceAll("\\", "/");
-
-const vd = spawn(parsec_vdd);
-vd.stdin.write("a");
-
+console.log(parsec_vdd);
+const vd = spawn(parsec_vdd, { stdio: ['pipe', 'pipe', 'pipe'] });
+vd.stdin.setEncoding('utf-8');
+vd.stdout.on("data", (data) => {
+  console.log(data.toString());
+})
+vd.stderr.on("data", (data) => {
+  console.log(data.toString());
+})
+time.sleep(100);
+vd.stdin.write("a\\n");
 process.on("exit", () => {
-  vd.stdin.write("q");
+  vd.stdin.write("q\\n");
 });
 
 const app = express();
@@ -119,8 +115,8 @@ const initializeServer = async () => {
         data.axes
       );
     });
-    socket.on("test1", (data) => {});
-    socket.on("test2", (data) => {});
+    socket.on("test1", (data) => { vd.stdin.write("a\\n"); });
+    socket.on("test2", (data) => { vd.stdin.write("r\\n"); });
 
     socket.on("getTitlelist", (func) => {
       // func(touch.getAllWindowTitles());
@@ -313,24 +309,24 @@ const initializeServer = async () => {
     const padString = btn.map((element) => element.toString());
     let paddata1 = parseInt(
       padString[14] + //left
-        padString[13] + //down
-        padString[15] + //right
-        padString[12] + //up
-        padString[9] + //option
-        padString[11] + //r3
-        padString[10] + //l3
-        padString[8], //share
+      padString[13] + //down
+      padString[15] + //right
+      padString[12] + //up
+      padString[9] + //option
+      padString[11] + //r3
+      padString[10] + //l3
+      padString[8], //share
       2
     );
     let paddata2 = parseInt(
       padString[2] + //X
-        padString[1] + //B
-        padString[0] + //A
-        padString[3] + //Y
-        padString[5] + //r
-        padString[4] + //l
-        padString[7] + //r2
-        padString[6], //l2
+      padString[1] + //B
+      padString[0] + //A
+      padString[3] + //Y
+      padString[5] + //r
+      padString[4] + //l
+      padString[7] + //r2
+      padString[6], //l2
       2
     );
 
