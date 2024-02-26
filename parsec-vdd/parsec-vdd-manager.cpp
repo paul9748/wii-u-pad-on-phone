@@ -3,6 +3,7 @@
 #include <chrono>
 #include <vector>
 #include <iostream>
+#include <algorithm>
 #include <Windows.h>
 #include "./parsec-vdd.h"
 
@@ -11,69 +12,35 @@ using namespace parsec_vdd;
 
 DEVMODE devMode;
 
-void changeResolution(const char* deviceName, int width, int height) {
-    devMode.dmSize = sizeof(devMode);
-    devMode.dmPelsWidth = width;
-    devMode.dmPelsHeight = height;
-    devMode.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
+std::vector<std::string> initialDisplayList;
 
-    LONG result = ChangeDisplaySettingsEx(deviceName, &devMode, NULL, CDS_UPDATEREGISTRY, NULL);
-    if (result != DISP_CHANGE_SUCCESSFUL) {
-        std::cerr << "Failed to change resolution" << std::endl;
+void saveInitialDisplayList() {
+    DISPLAY_DEVICE dd;
+    ZeroMemory(&dd, sizeof(dd));
+    dd.cb = sizeof(dd);
+    for (int i = 0; EnumDisplayDevices(NULL, i, &dd, 0); i++) {
+        initialDisplayList.push_back(std::string(dd.DeviceName));
     }
 }
 
-void printActiveDisplays() {
-    DISPLAY_DEVICE displayDevice;
-    displayDevice.cb = sizeof(displayDevice);
-
-    std::cout << "List of active displays:" << std::endl;
-
-    for (int displayIndex = 0; EnumDisplayDevices(NULL, displayIndex, &displayDevice, 0); ++displayIndex) {
-        if (!(displayDevice.StateFlags & DISPLAY_DEVICE_ACTIVE))
-            continue;
-
-        std::cout << displayIndex + 1 << ". " << displayDevice.DeviceString << std::endl;
+std::vector<std::string> findNewDisplays() {
+    std::vector<std::string> newDisplays;
+    DISPLAY_DEVICE dd;
+    ZeroMemory(&dd, sizeof(dd));
+    dd.cb = sizeof(dd);
+    for (int i = 0; EnumDisplayDevices(NULL, i, &dd, 0); i++) {
+        std::string currentDisplay(dd.DeviceName);
+        if (std::find(initialDisplayList.begin(), initialDisplayList.end(), currentDisplay) == initialDisplayList.end()) {
+            newDisplays.push_back(currentDisplay);
+        }
     }
+    return newDisplays;
 }
 
-void printAvailableResolutions(const char* deviceName) {
-    int modeIndex = 0;
-    EnumDisplaySettings(deviceName, modeIndex, &devMode);
-    std::cout << "List of available resolutions for the selected display:" << std::endl;
 
-    while (EnumDisplaySettings(deviceName, modeIndex, &devMode)) {
-        std::cout << modeIndex + 1 << ". Width: " << devMode.dmPelsWidth << " pixels, Height: " << devMode.dmPelsHeight << " pixels" << std::endl;
-        ++modeIndex;
-    }
-}
-
-int selectDisplayAndResolution() {
-    printActiveDisplays();
-
-    int selectedDisplay;
-    std::cout << "Enter the number of the desired display: ";
-    std::cin >> selectedDisplay;
-
-    DISPLAY_DEVICE displayDevice;
-    ZeroMemory(&displayDevice, sizeof(displayDevice));
-    displayDevice.cb = sizeof(displayDevice);
-    EnumDisplayDevices(NULL, selectedDisplay - 1, &displayDevice, 0);
-
-    printAvailableResolutions(displayDevice.DeviceName);
-
-    int selectedResolution;
-    std::cout << "Enter the number of the desired resolution: ";
-    std::cin >> selectedResolution;
-
-    int modeIndex = selectedResolution - 1;
-    EnumDisplaySettings(displayDevice.DeviceName, modeIndex, &devMode);
-    changeResolution(displayDevice.DeviceName, devMode.dmPelsWidth, devMode.dmPelsHeight);
-
-    return 0;
-}
 
 int main() {
+    saveInitialDisplayList();
     DeviceStatus status = QueryDeviceStatus(&VDD_CLASS_GUID, VDD_HARDWARE_ID);
     if (status != DEVICE_OK) {
         printf("Parsec VDD device is not OK, got status %d.\n", status);
@@ -97,56 +64,54 @@ int main() {
         });
     updater.detach();
 
-    printf("Press A to add a virtual display.\n");
-    printf("Press R to remove the last added.\n");
-    printf("Press S to show available displays and change resolution.\n");
-    printf("Press Q to quit (then unplug all).\n\n");
 
-    
-        
-    while (running) {
-        int key = getchar();  // Use getchar() instead of _getch()
+    Sleep(200);
+    if (displays.size() < VDD_MAX_DISPLAYS) {
+        int index = VddAddDisplay(vdd);
+        displays.push_back(index);
+        printf("Added a new virtual display, index: %d.\n", index);
+    }
+    else {
+        printf("Limit exceeded (%d), could not add more virtual displays.\n", VDD_MAX_DISPLAYS);
+    }
+    Sleep(1000);
 
-        switch (key) {
-        case 'q':
-            running = false;
-            break;
-        case 'a':
-            if (displays.size() < VDD_MAX_DISPLAYS) {
-                int index = VddAddDisplay(vdd);
-                displays.push_back(index);
-                printf("Added a new virtual display, index: %d.\n", index);
-            }
-            else {
-                printf("Limit exceeded (%d), could not add more virtual displays.\n", VDD_MAX_DISPLAYS);
-            }
-            break;
-        case 'r':
-            if (displays.size() > 0) {
-                int index = displays.back();
-                VddRemoveDisplay(vdd, index);
-                displays.pop_back();
-                printf("Removed the last virtual display, index: %d.\n", index);
-            }
-            else {
-                printf("No added virtual displays.\n");
-            }
-            break;
-        case 's':
-            selectDisplayAndResolution();
-            break;
+    // 새로운 디스플레이를 찾습니다.
+    std::vector<std::string> newDisplays = findNewDisplays();
+    for (const auto& display : newDisplays) {
+        std::cout << "New display detected: " << display << std::endl;
+
+        // 새로운 디스플레이에서 사용 가능한 해상도를 찾습니다.
+        DEVMODE dm;
+        ZeroMemory(&dm, sizeof(dm));
+        dm.dmSize = sizeof(dm);
+        for (int i = 0; EnumDisplaySettings(display.c_str(), i, &dm); i++) {
+            std::cout << "  Mode " << i << ": " << dm.dmPelsWidth << "x" << dm.dmPelsHeight << std::endl;
+        }
+
+        // 사용자로부터 해상도를 선택하도록 요청합니다.
+        int modeIndex;
+        std::cout << "Enter mode index for display " << display << ": ";
+        std::cin >> modeIndex;
+
+        // 선택한 해상도를 가져옵니다.
+        EnumDisplaySettings(display.c_str(), modeIndex, &dm);
+
+        // 디스플레이 설정을 변경합니다.
+        LONG result = ChangeDisplaySettingsEx(display.c_str(), &dm, NULL, 0, NULL);
+        if (result == DISP_CHANGE_SUCCESSFUL) {
+            std::cout << "Display settings changed successfully for display " << display << std::endl;
+        }
+        else {
+            std::cout << "Failed to change display settings for display " << display << ". Error code: " << result << std::endl;
         }
     }
 
-    for (int index : displays) {
-        VddRemoveDisplay(vdd, index);
+
+
+    while (running) {
+
     }
 
-    if (updater.joinable()) {
-        updater.join();
-    }
 
-    CloseDeviceHandle(vdd);
-
-    return 0;
 }
