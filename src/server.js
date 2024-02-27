@@ -6,6 +6,10 @@ import dgram from "dgram";
 import crc from "crc";
 import path from "path";
 import { spawn } from "child_process";
+
+const mouseaddon = require('../build/Release/mouseaddon');
+
+
 const parsec_vdd = path
   .resolve("./parsec-vdd-manager.exe")
   .replaceAll("\\", "/");
@@ -107,15 +111,33 @@ const initializeServer = async () => {
         data.axes
       );
     });
-    socket.on("test1", (data) => { vd.stdin.write("a\\n"); });
-    socket.on("test2", (data) => { vd.stdin.write("r\\n"); });
-
-    socket.on("getTitlelist", (func) => {
-      // func(touch.getAllWindowTitles());
-    });
-    socket.on("processSelect", (selectedTitle) => {
-      title = selectedTitle;
-    });
+    socket.on("touch_event", (action, x, y) => {
+      console.log(action, x + 3000, y);
+      switch (action) {
+        case "mousedown":
+          mouseaddon.mousePress(1, x + 3000, y);
+          break;
+        case "mouseup":
+          mouseaddon.mouseRelease(1, x + 3000, y);
+          break;
+        case "mousemove":
+          mouseaddon.mouseMove(x + 3000, y);
+          break;
+        default:
+          break;
+      }
+    })
+    socket.on("test1", (data) => {
+      mouseaddon.mousePress(3200, 200);
+      mouseaddon.mouseMove(3200, 300);
+      mouseaddon.mouseRelease(3200, 300);
+    })
+    socket.on("test2", (data) => {
+      mouseaddon.mousePress(500, 500);
+    })
+    socket.on("test3", (data) => {
+      mouseaddon.mousePress(500, 500);
+    })
   });
 
   const handleHttpsListen = () =>

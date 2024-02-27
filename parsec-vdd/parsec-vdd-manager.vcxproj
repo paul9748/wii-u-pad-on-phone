@@ -120,7 +120,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="parsec-vdd-manager.cpp" />
-    <ClCompile Include="test.cpp" />
+    <!--<ClCompile Include="test.cpp" />-->
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="parsec-vdd.h" />
