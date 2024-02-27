@@ -7,23 +7,17 @@ import crc from "crc";
 import path from "path";
 import { spawn } from "child_process";
 const parsec_vdd = path
-  .resolve("./parsec-vdd/x64/Debug/parsec-vdd-manager.exe")
+  .resolve("./parsec-vdd-manager.exe")
   .replaceAll("\\", "/");
 console.log(parsec_vdd);
 const vd = spawn(parsec_vdd, { stdio: ['pipe', 'pipe', 'pipe'] });
-vd.stdin.setEncoding('utf-8');
-vd.stdout.on("data", (data) => {
-  console.log(data.toString());
-})
-vd.stderr.on("data", (data) => {
-  console.log(data.toString());
-})
-time.sleep(100);
-vd.stdin.write("a\\n");
-process.on("exit", () => {
-  vd.stdin.write("q\\n");
-});
 
+process.on('exit', (code) => {
+  vd.kill('SIGINT');
+});
+process.once('SIGINT', () => {
+  vd.kill('SIGINT');
+})
 const app = express();
 
 app.set("view engine", "pug");
@@ -36,8 +30,6 @@ app.get("/*", (_, res) => res.redirect("/"));
 
 const keyPath = __dirname + "/key.pem";
 const certPath = __dirname + "/fullchain.pem";
-let title = "";
-let vdIndex;
 
 const download = (url, destination) => {
   return new Promise((resolve, reject) => {
