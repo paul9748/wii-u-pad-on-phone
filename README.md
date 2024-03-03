@@ -1,4 +1,5 @@
-# U Pad
+````markdown
+# Cemu Wii U Gamepad Emulator for Smartphone
 
 ## Overview
 
@@ -15,16 +16,16 @@ This Node.js project aims to emulate the Wii U Gamepad using a smartphone as a s
 
 - Node.js: This project is built using Node.js for server-side scripting.
 - C++: Some functionalities are implemented using C++.
-- ParsecVdd: Used for certain aspects of the project.
+- [ParsecVdd](https://builds.parsec.app/vdd/parsec-vdd-0.41.0.0.exe): Used for certain aspects of the project. Download and install it before running the project.
 
 ## Installation
 
 1. Clone the repository:
-
    ```bash
    git clone https://github.com/your-username/cemu-gamepad-emulator.git
    cd cemu-gamepad-emulator
    ```
+````
 
 2. Install dependencies:
 
@@ -51,3 +52,7 @@ Feel free to contribute to the project by submitting issues or pull requests. An
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+
+```
+
+```
