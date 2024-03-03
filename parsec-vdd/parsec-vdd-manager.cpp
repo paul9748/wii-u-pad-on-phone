@@ -39,13 +39,13 @@ int main() {
 
     DeviceStatus status = QueryDeviceStatus(&VDD_CLASS_GUID, VDD_HARDWARE_ID);
     if (status != DEVICE_OK) {
-        printf("Parsec VDD device is not OK, got status %d.\n", status);
+        std::cout << "Parsec VDD device is not OK, got status " << status << ".\n" << std::flush;
         return 1;
     }
 
     vdd = OpenDeviceHandle(&VDD_ADAPTER_GUID);
     if (vdd == NULL || vdd == INVALID_HANDLE_VALUE) {
-        printf("Failed to obtain the device handle.\n");
+        std::cout << "Failed to obtain the device handle.\n" << std::flush;
         return 1;
     }
 
@@ -63,10 +63,10 @@ int main() {
     if (displays.size() < VDD_MAX_DISPLAYS) {
         int index = VddAddDisplay(vdd);
         displays.push_back(index);
-        printf("Added a new virtual display, index: %d.\n", index);
+        std::cout << "Added a new virtual display, index: " << index << ".\n" << std::flush;
     }
     else {
-        printf("Limit exceeded (%d), could not add more virtual displays.\n", VDD_MAX_DISPLAYS);
+        std::cout << "Limit exceeded (" << VDD_MAX_DISPLAYS << "), could not add more virtual displays.\n" << std::flush;
     }
     Sleep(1000);
 
@@ -75,7 +75,7 @@ int main() {
     initialActiveDisplayList = currentActiveDisplayList;
 
     while (running) {
-        // Your main program loop here...
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     CleanupAndExit();
@@ -116,7 +116,7 @@ void CompareAndPrintActiveDisplays(const std::vector<DisplayInfo>& oldList, cons
     std::cout << "New Active Displays:\n";
     for (const auto& display : newList) {
         if (oldDisplaySet.find(display.deviceName) == oldDisplaySet.end()) {
-            std::cout << "Index: " << display.index << ", Device Name: " << display.deviceName << '\n';
+            std::cout << "Index: " << display.index << ", Device Name: " << display.deviceName << "\n" << std::flush;
 
             std::vector<Resolution> resolutions = GetDisplayResolutions(display.deviceName);
             bool resolutionFound = false;
@@ -124,7 +124,7 @@ void CompareAndPrintActiveDisplays(const std::vector<DisplayInfo>& oldList, cons
             for (const auto& resolution : resolutions) {
                 if (resolution.width == 852 && resolution.height == 480) {
                     resolutionFound = true;
-                    std::cout << "Changing resolution to 852x480...\n";
+                    std::cout << "Changing resolution to 852x480...\n" << std::flush;
                     DEVMODE devMode = { 0 };
                     devMode.dmSize = sizeof(DEVMODE);
                     devMode.dmPelsWidth = resolution.width;
@@ -133,10 +133,15 @@ void CompareAndPrintActiveDisplays(const std::vector<DisplayInfo>& oldList, cons
 
                     LONG result = ChangeDisplaySettingsEx(display.deviceName.c_str(), &devMode, nullptr, CDS_UPDATEREGISTRY, nullptr);
                     if (result == DISP_CHANGE_SUCCESSFUL) {
-                        std::cout << "Resolution changed successfully.\n";
+                        std::cout << "Resolution changed successfully.\n" << std::flush;
+
+                        // Print the coordinates after changing the resolution
+                        DEVMODE updatedDevMode = { 0 };
+                        EnumDisplaySettings(display.deviceName.c_str(), ENUM_CURRENT_SETTINGS, &updatedDevMode);
+                        std::cout << "Coordinates:" << updatedDevMode.dmPosition.x << "x" << updatedDevMode.dmPosition.y << "\n" << std::flush;
                     }
                     else {
-                        std::cout << "Failed to change resolution.\n";
+                        std::cout << "Failed to change resolution.\n" << std::flush;
                     }
 
                     break;
@@ -145,6 +150,8 @@ void CompareAndPrintActiveDisplays(const std::vector<DisplayInfo>& oldList, cons
         }
     }
 }
+
+
 
 void signalHandler(int signum) {
     CleanupAndExit();
@@ -162,3 +169,4 @@ void CleanupAndExit() {
 
     CloseDeviceHandle(vdd);
 }
+

@@ -22,7 +22,7 @@ const gamepadSelect = document.getElementById("gamepad");
 const screenPositionSelect = document.getElementById("position");
 const roomName = "upad";
 scaleSelect.addEventListener("change", () => (scale = scaleSelect.value));
-
+video.style.display = "none";
 // Gyro part
 window.ondevicemotion = function (motion) {
   startGyro = true;
@@ -155,40 +155,61 @@ document.addEventListener("fullscreenchange", () => {
 // Adjust canvas size initially
 adjustCanvasSize();
 
-
-
 //touchpart
-
-
 
 canvas.addEventListener("touchstart", (event) => {
   event.preventDefault();
   let titleCutValue = parseFloat(titleCut.value) || 0;
-  let canvasLocation = canvas.getBoundingClientRect()
-  console.log(`touchstart:${event.touches[0].clientX - canvasLocation.x}, ${event.touches[0].clientY - canvasLocation.y + titleCutValue}`);
-  socket.emit("touch_event", "mousedown", Math.round(event.touches[0].clientX - canvasLocation.x), Math.round(event.touches[0].clientY - canvasLocation.y + titleCutValue));
+  let canvasLocation = canvas.getBoundingClientRect();
+  console.log(
+    `touchstart:${event.touches[0].clientX - canvasLocation.x}, ${
+      event.touches[0].clientY - canvasLocation.y + titleCutValue
+    }`
+  );
+  socket.emit(
+    "touch_event",
+    "mousedown",
+    Math.round(event.touches[0].clientX - canvasLocation.x),
+    Math.round(event.touches[0].clientY - canvasLocation.y + titleCutValue)
+  );
 });
 
 canvas.addEventListener("touchmove", (event) => {
   event.preventDefault();
   let titleCutValue = parseFloat(titleCut.value) || 0;
-  let canvasLocation = canvas.getBoundingClientRect()
-  socket.emit("touch_event", "mousemove", Math.round(event.touches[0].clientX - canvasLocation.x), Math.round(event.touches[0].clientY - canvasLocation.y + titleCutValue));
-  console.log(`touchmove:${event.touches[0].clientX - canvasLocation.x}, ${event.touches[0].clientY - canvasLocation.y + titleCutValue}`);
-
-})
+  let canvasLocation = canvas.getBoundingClientRect();
+  socket.emit(
+    "touch_event",
+    "mousemove",
+    Math.round(event.touches[0].clientX - canvasLocation.x),
+    Math.round(event.touches[0].clientY - canvasLocation.y + titleCutValue)
+  );
+  console.log(
+    `touchmove:${event.touches[0].clientX - canvasLocation.x}, ${
+      event.touches[0].clientY - canvasLocation.y + titleCutValue
+    }`
+  );
+});
 
 canvas.addEventListener("touchend", (event) => {
   event.preventDefault();
   let titleCutValue = parseFloat(titleCut.value) || 0;
-  let canvasLocation = canvas.getBoundingClientRect()
-  console.log(Math.round(event.changedTouches[0].clientX - canvasLocation.x), Math.round(event.changedTouches[0].clientY - canvasLocation.y + titleCutValue));
-  socket.emit("touch_event", "mouseup", Math.round(event.changedTouches[0].clientX - canvasLocation.x), Math.round(event.changedTouches[0].clientY - canvasLocation.y + titleCutValue));
-
-
-})
-
-
+  let canvasLocation = canvas.getBoundingClientRect();
+  console.log(
+    Math.round(event.changedTouches[0].clientX - canvasLocation.x),
+    Math.round(
+      event.changedTouches[0].clientY - canvasLocation.y + titleCutValue
+    )
+  );
+  socket.emit(
+    "touch_event",
+    "mouseup",
+    Math.round(event.changedTouches[0].clientX - canvasLocation.x),
+    Math.round(
+      event.changedTouches[0].clientY - canvasLocation.y + titleCutValue
+    )
+  );
+});
 
 // Soket join part
 async function initCall() {
@@ -242,7 +263,6 @@ socket.on("ice", (ice) => {
   myPeerConnection.addIceCandidate(ice);
 });
 
-
 function handleIce(data) {
   console.log("received candidate");
   socket.emit("ice", data.candidate, roomName);
@@ -277,8 +297,7 @@ function handleAddStream(data) {
   console.log("received the stream");
   process.options.length = 0;
   video.srcObject = data.stream;
-  drawFrame()
-
+  drawFrame();
 }
 async function drawFrame() {
   let settings = video.srcObject.getVideoTracks()[0].getSettings();
@@ -288,12 +307,8 @@ async function drawFrame() {
   // canvas.style.height = `${settings.height - titleCut.value - bottomCut.value}px`;
   ctx.drawImage(video, 0, -titleCut.value, settings.width, settings.height);
   window.requestAnimationFrame(drawFrame);
-
-
 }
 
 function datatransfer(data) {
   socket.emit("data", data);
 }
-
-//todo 나중에 터치입력이 픽셀 단위가 아니라 받아온 영상 해상도, 비율 에 따라 입력 되도록 수정 

@@ -6,7 +6,6 @@ const selectBtn = document.getElementById("selectdisplay");
 let myStream;
 let myPeerConnection;
 
-
 const displayMediaOptions = {
   video: {
     displaySurface: "browser",
@@ -20,12 +19,13 @@ const displayMediaOptions = {
   surfaceSwitching: "include",
   monitorTypeSurfaces: "include",
 };
+
 // Display Media Functions
 async function getMedia() {
-
   try {
-
-    myStream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
+    myStream = await navigator.mediaDevices.getDisplayMedia(
+      displayMediaOptions
+    );
     video.srcObject = myStream;
   } catch (error) {
     console.error(error);
@@ -34,11 +34,13 @@ async function getMedia() {
 
 async function handleDisplayChange(event) {
   event.preventDefault();
-
   await getMedia();
+
   if (myPeerConnection) {
     const videoTrack = myStream.getVideoTracks()[0];
-    const videoSender = myPeerConnection.getSenders().find((sender) => sender.track.kind === "video");
+    const videoSender = myPeerConnection
+      .getSenders()
+      .find((sender) => sender.track.kind === "video");
     videoSender.replaceTrack(videoTrack);
   }
 }
@@ -95,7 +97,6 @@ socket.on("ice", (ice) => {
 function handleIce(data) {
   console.log("received candidate");
   socket.emit("ice", data.candidate, roomName);
-
 }
 
 // RTC Code
@@ -113,17 +114,9 @@ function makeConnection() {
   myPeerConnection.addEventListener("icecandidate", handleIce);
   myPeerConnection.addEventListener("addstream", handleAddStream);
 
-  myStream.getTracks().forEach((track) => myPeerConnection.addTrack(track, myStream));
-
-  // const encodingParameters = {
-  //   resolutionScale: 1.0,  // 해상도 비율 설정
-  //   framerateScale: 1.0,  // 프레임 속도 비율 설정
-  //   bitrateScale: 1.0,    // 비트레이트 비율 설정
-  // };
-
-  // const videoSender = myPeerConnection.getSenders().find((sender) => sender.track.kind === "video");
-  // videoSender.setParameters({ encodings: [encodingParameters] });
-
+  myStream
+    .getTracks()
+    .forEach((track) => myPeerConnection.addTrack(track, myStream));
 }
 
 function handleAddStream(data) {

@@ -7,21 +7,37 @@ import crc from "crc";
 import path from "path";
 import { spawn } from "child_process";
 
-const mouseaddon = require('../build/Release/mouseaddon');
+const mouseaddon = require("../build/Release/mouseaddon");
 
-
-const parsec_vdd = path
+const coordinates = [];
+const parsecVdd = path
   .resolve("./parsec-vdd-manager.exe")
   .replaceAll("\\", "/");
-console.log(parsec_vdd);
-const vd = spawn(parsec_vdd, { stdio: ['pipe', 'pipe', 'pipe'] });
-
-process.on('exit', (code) => {
-  vd.kill('SIGINT');
+console.log(parsecVdd);
+const vd = spawn(parsecVdd);
+vd.stdout.on("data", (data) => {
+  const output = data.toString();
+  const regex = /Coordinates:(\d+)x(\d+)/;
+  const match = output.match(regex);
+  if (match) {
+    const xCoordinate = parseInt(match[1], 10);
+    const yCoordinate = parseInt(match[2], 10);
+    coordinates.push({ x: xCoordinate, y: yCoordinate });
+    console.log("coordinates", coordinates);
+  }
 });
-process.once('SIGINT', () => {
-  vd.kill('SIGINT');
-})
+
+vd.stderr.on("data", (data) => {
+  console.error(`stderr: ${data}`);
+});
+
+const handleProcessExit = (code) => {
+  vd.kill("SIGINT");
+};
+
+process.on("exit", handleProcessExit);
+process.once("SIGINT", handleProcessExit);
+
 const app = express();
 
 app.set("view engine", "pug");
@@ -35,7 +51,7 @@ app.get("/*", (_, res) => res.redirect("/"));
 const keyPath = __dirname + "/key.pem";
 const certPath = __dirname + "/fullchain.pem";
 
-const download = (url, destination) => {
+const download = async (url, destination) => {
   return new Promise((resolve, reject) => {
     https
       .get(url, (response) => {
@@ -73,8 +89,8 @@ const downloadCertificates = async () => {
     };
   }
 };
+
 const initializeServer = async () => {
-  // Wait for certificates to be downloaded
   const credentials = await downloadCertificates();
 
   const httpsOptions = {
@@ -112,32 +128,32 @@ const initializeServer = async () => {
       );
     });
     socket.on("touch_event", (action, x, y) => {
-      console.log(action, x + 3000, y);
+      console.log(action, x + coordinates[0], y + coordinates[1]);
       switch (action) {
         case "mousedown":
-          mouseaddon.mousePress(1, x + 3000, y);
+          mouseaddon.mousePress(1, x + coordinates[0], y + coordinates[1]);
           break;
         case "mouseup":
-          mouseaddon.mouseRelease(1, x + 3000, y);
+          mouseaddon.mouseRelease(1, x + coordinates[0], y + coordinates[1]);
           break;
         case "mousemove":
-          mouseaddon.mouseMove(x + 3000, y);
+          mouseaddon.mouseMove(1, x + coordinates[0], y + coordinates[1]);
           break;
         default:
           break;
       }
-    })
+    });
     socket.on("test1", (data) => {
       mouseaddon.mousePress(3200, 200);
       mouseaddon.mouseMove(3200, 300);
       mouseaddon.mouseRelease(3200, 300);
-    })
+    });
     socket.on("test2", (data) => {
       mouseaddon.mousePress(500, 500);
-    })
+    });
     socket.on("test3", (data) => {
       mouseaddon.mousePress(500, 500);
-    })
+    });
   });
 
   const handleHttpsListen = () =>
@@ -265,7 +281,6 @@ const initializeServer = async () => {
     if (msgType == MessageType.DSUC_VersionReq) {
       console.log("Version request ignored.");
     } else if (msgType == MessageType.DSUC_ListPorts) {
-      // console.log("List ports request.");
       let numOfPadRequests = data.readInt32LE(index);
       index += 4;
       for (let i = 0; i < numOfPadRequests; i++) {
@@ -323,24 +338,24 @@ const initializeServer = async () => {
     const padString = btn.map((element) => element.toString());
     let paddata1 = parseInt(
       padString[14] + //left
-      padString[13] + //down
-      padString[15] + //right
-      padString[12] + //up
-      padString[9] + //option
-      padString[11] + //r3
-      padString[10] + //l3
-      padString[8], //share
+        padString[13] + //down
+        padString[15] + //right
+        padString[12] + //up
+        padString[9] + //option
+        padString[11] + //r3
+        padString[10] + //l3
+        padString[8], //share
       2
     );
     let paddata2 = parseInt(
       padString[2] + //X
-      padString[1] + //B
-      padString[0] + //A
-      padString[3] + //Y
-      padString[5] + //r
-      padString[4] + //l
-      padString[7] + //r2
-      padString[6], //l2
+        padString[1] + //B
+        padString[0] + //A
+        padString[3] + //Y
+        padString[5] + //r
+        padString[4] + //l
+        padString[7] + //r2
+        padString[6], //l2
       2
     );
 
@@ -470,7 +485,7 @@ const initializeServer = async () => {
 };
 
 process.on("exit", () => {
-  nativeAddon.stopProgram();
+  mouseaddon.stopProgram();
 });
 
 initializeServer();
