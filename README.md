@@ -2,8 +2,7 @@
 # Cemu Wii U Gamepad Emulator for Smartphone
 
 ## Overview
-This Node.js project aims to emulate the Wii U Gamepad using a smartphone as a substitute for Cemu, a Wii U emulator. The project includes features such as adding a virtual display, selecting the display from the client page, and transmitting gyro sensor data, connected joystick values, and touchscreen input to Cemu.
-
+This Node.js project aims to emulate a Wii U gamepad using a smartphone in Cemu, a Wii U emulator. The project includes features such as adding a virtual display, selecting a display on the client page, and sending gyro sensor data, connected joystick values, and touchscreen inputs to Cemu.
 ## Features
 - Virtual display addition for emulating the Wii U Gamepad screen.
 - Transmission of gyro sensor data from the smartphone to Cemu.
