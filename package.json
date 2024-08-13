@@ -1,6 +1,6 @@
 {
-  "name": "zoom",
-  "version": "1.0.0",
+  "name": "wii-u-pad-on-phone",
+  "version": "0.9.0",
   "description": "",
   "license": "ISC",
   "dependencies": {
@@ -18,7 +18,6 @@
   "scripts": {
     "dev": "nodemon",
     "start": "babel-node src/server.js"
-    
   },
   "devDependencies": {
     "@babel/cli": "^7.23.4",
