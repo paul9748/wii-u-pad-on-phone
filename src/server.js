@@ -48,8 +48,8 @@ app.get("/cli", (_, res) => res.render("cli"));
 app.get("/server", (_, res) => res.render("server"));
 app.get("/*", (_, res) => res.redirect("/"));
 
-const keyPath = __dirname + "/key.pem";
-const certPath = __dirname + "/fullchain.pem";
+const keyPath = "./key.pem";
+const certPath = "./fullchain.pem";
 
 const download = async (url, destination) => {
   return new Promise((resolve, reject) => {
@@ -84,8 +84,8 @@ const downloadCertificates = async () => {
 
     // Use local certificates if download fails
     return {
-      key: fs.readFileSync(__dirname + "/ssl/key.pem", "utf8"),
-      cert: fs.readFileSync(__dirname + "/ssl/cert.pem", "utf8"),
+      key: fs.readFileSync("./ssl/key.pem", "utf8"),
+      cert: fs.readFileSync("./ssl/cert.pem", "utf8"),
     };
   }
 };
@@ -338,24 +338,24 @@ const initializeServer = async () => {
     const padString = btn.map((element) => element.toString());
     let paddata1 = parseInt(
       padString[14] + //left
-        padString[13] + //down
-        padString[15] + //right
-        padString[12] + //up
-        padString[9] + //option
-        padString[11] + //r3
-        padString[10] + //l3
-        padString[8], //share
+      padString[13] + //down
+      padString[15] + //right
+      padString[12] + //up
+      padString[9] + //option
+      padString[11] + //r3
+      padString[10] + //l3
+      padString[8], //share
       2
     );
     let paddata2 = parseInt(
       padString[2] + //X
-        padString[1] + //B
-        padString[0] + //A
-        padString[3] + //Y
-        padString[5] + //r
-        padString[4] + //l
-        padString[7] + //r2
-        padString[6], //l2
+      padString[1] + //B
+      padString[0] + //A
+      padString[3] + //Y
+      padString[5] + //r
+      padString[4] + //l
+      padString[7] + //r2
+      padString[6], //l2
       2
     );
 
