@@ -19,23 +19,17 @@ This Node.js project aims to emulate a Wii U gamepad using a smartphone in Cemu,
 
 ## Installation
 
-1. Clone the repository:
+1. Download releases:
 
-   ```bash
-   git clone https://github.com/paul9748/wii-u-pad-on-phone.git
-   cd cemu-gamepad-emulator
-   ```
+   https://github.com/paul9748/wii-u-pad-on-phone/releases
 
 2. Install dependencies:
 
-   ```bash
-   npm install
-   ```
+   After installing the driver by running "parsec-vdd-0.41.0.0.exe", you need to run "wiiu.reg" to save the required resolution in the registry.
 
 3. Start the server:
-   ```bash
-   npm start
-   ```
+
+   Run "wii-u-pad-on-phone-win.exe"
 
 ## Usage
 
