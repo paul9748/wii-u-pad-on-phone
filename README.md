@@ -11,11 +11,6 @@ This Node.js project aims to emulate a Wii U gamepad using a smartphone in Cemu,
 - Transmission of connected joystick values to Cemu.
 - Forwarding touchscreen input from the smartphone to Cemu.
 
-## Dependencies
-
-- Node.js: This project is built using Node.js for server-side scripting.
-- C++: Some functionalities are implemented using C++.
-- [ParsecVdd](https://github.com/nomi-san/parsec-vdd): Used for certain aspects of the project. Download and install it before running the project.
 
 ## Installation
 
